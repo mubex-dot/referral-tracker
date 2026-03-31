@@ -1,5 +1,6 @@
 import type { Request, Response, Express } from "express";
 import referralRoutes from "../modules/referrals/routes.ts";
+import { analyticsRoutes } from "../modules/analytics/routes.ts";
 
 export const setupRoutes = (app: Express) => {
   app.get("/", (req: Request, res: Response) => {
@@ -16,6 +17,8 @@ export const setupRoutes = (app: Express) => {
 
   //   NOTE: All app new routes are to be written here
   app.use("/referrals", referralRoutes);
+
+  app.use("/analytics", analyticsRoutes);
 
   app.use("/", (req: Request, res: Response) => {
     res.status(404).send({ message: "endpoint not found" });

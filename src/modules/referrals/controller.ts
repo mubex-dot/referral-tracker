@@ -89,7 +89,7 @@ export const getAllReferrals = async (req: Request, res: Response) => {
 
 export const redirectReferral = async (req: Request, res: Response) => {
   try {
-    let code = req.params.code;
+    let { code } = req.params;
     if (Array.isArray(code)) code = code[0];
 
     if (!code) {
