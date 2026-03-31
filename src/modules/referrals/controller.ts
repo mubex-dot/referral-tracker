@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { nanoid } from "nanoid";
 import { prisma } from "../../config/db.ts";
+import { SendMail } from "../../utils/mailer.ts";
 
 export const CreateReferral = async (req: Request, res: Response) => {
   try {
@@ -34,7 +35,7 @@ export const CreateReferral = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(201).json(referral);
+    return res.status(201).json({ status: "success", data: referral });
   } catch (error) {
     return res
       .status(500)
@@ -44,7 +45,9 @@ export const CreateReferral = async (req: Request, res: Response) => {
 
 export const GetAllReferrals = async (req: Request, res: Response) => {
   try {
-    const referrals = await prisma.referral.findMany({});
+    const referrals = await prisma.referral.findMany({
+      include: { _count: { select: { clicks: true } } },
+    });
     return res.status(200).json({ status: "success", data: referrals });
   } catch (error) {
     return res
@@ -74,11 +77,60 @@ export const RedirectReferral = async (req: Request, res: Response) => {
 
     await prisma.click.create({
       data: {
-        referralCode: code,
+        referralId: referral.id,
       },
     });
 
     return res.redirect(`${referral.targetUrl}?ref=${code}`);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ status: "failed", error: `Something went wrong: ${error}` });
+  }
+};
+
+export const ConvertReferral = async (req: Request, res: Response) => {
+  try {
+    const { referralCode } = req.body;
+
+    if (!referralCode) {
+      return res
+        .status(400)
+        .json({ status: "failed", error: "Referral code is required" });
+    }
+
+    const referral = await prisma.referral.findUnique({
+      where: { code: referralCode },
+    });
+
+    if (!referral) {
+      return res
+        .status(404)
+        .json({ status: "failed", error: "Referral not found" });
+    }
+
+    if (referral.converted) {
+      return res.status(200).json({
+        status: "success",
+        message: "Referral code has already been converted",
+      });
+    }
+
+    await prisma.referral.update({
+      where: { code: referralCode },
+      data: { converted: true, convertedAt: new Date() },
+    });
+
+    SendMail({
+      to: "mubee2004@gmail.com",
+      subject: "Testing email",
+      text: "and easy to do anywhere, even with Node.js",
+      html: "<strong>and easy to do anywhere, even with Node.js</strong>",
+    });
+
+    return res
+      .status(200)
+      .json({ status: "success", message: "Referral converted" });
   } catch (error) {
     return res
       .status(500)

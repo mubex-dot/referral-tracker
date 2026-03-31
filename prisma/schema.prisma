@@ -17,13 +17,15 @@ model Referral {
   referrerEmail String
   targetUrl     String
   code          String    @unique
-  createdAt     DateTime  @default(now())
   converted     Boolean   @default(false)
+  clicks        Click[]
+  createdAt     DateTime  @default(now())
+  convertedAt   DateTime?
 }
 
 model Click {
-  id            String    @id @default(uuid())
-  referralCode  String
-  createdAt     DateTime  @default(now())
+  id         String   @id @default(uuid())
+  referralId String
+  referral   Referral @relation(fields: [referralId], references: [id])
+  createdAt  DateTime @default(now())
 }
-
