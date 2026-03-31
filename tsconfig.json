@@ -43,8 +43,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "rewriteRelativeImportExtensions": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*"]
 }
