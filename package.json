@@ -1,0 +1,24 @@
+{
+  "name": "referral-tracker",
+  "version": "1.0.0",
+  "description": "A backend system that allows generating and tracking referral links for any platform",
+  "main": "app.ts",
+  "type": "module",
+  "scripts": {
+    "start": "tsx app.ts",
+    "dev": "tsx watch app.ts"
+  },
+  "author": "Mubarak",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}
