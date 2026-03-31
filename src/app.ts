@@ -1,19 +1,11 @@
 import express from "express";
 import { setupRoutes } from "./routers/apiRoutes.ts";
+import { loggerMiddleware } from "./middlewares/logger.ts";
 
 export const app = express();
 const port = 3000;
 
-// Middleware for logging requests
-app.use((req, res, next) => {
-  // Listen for the response to finish before logging
-  res.on("finish", () => {
-    console.log(
-      `[${new Date().toUTCString()}] ${req.method} ${req.path} ${res.statusCode}`,
-    );
-  });
-  next();
-});
+app.use(loggerMiddleware);
 
 app.use(express.json());
 
