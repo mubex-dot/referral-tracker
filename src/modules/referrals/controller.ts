@@ -8,7 +8,7 @@ import {
 } from "../../utils/mailTemplates.ts";
 import { getBaseUrl } from "../../utils/getBaseUrl.ts";
 
-export const CreateReferral = async (req: Request, res: Response) => {
+export const createReferral = async (req: Request, res: Response) => {
   try {
     const { referrerEmail, targetUrl } = req.body;
     const code = nanoid(8);
@@ -35,8 +35,6 @@ export const CreateReferral = async (req: Request, res: Response) => {
     const existing = await prisma.referral.findFirst({
       where: { referrerEmail, targetUrl: parsedUrl.toString() },
     });
-
-    console.log(existing);
 
     if (existing) {
       return res.status(200).json({
@@ -68,26 +66,28 @@ export const CreateReferral = async (req: Request, res: Response) => {
       data: referral,
     });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
-      .json({ status: "failed", error: `Something went wrong: ${error}` });
+      .json({ status: "failed", error: `Something went wrong` });
   }
 };
 
-export const GetAllReferrals = async (req: Request, res: Response) => {
+export const getAllReferrals = async (req: Request, res: Response) => {
   try {
     const referrals = await prisma.referral.findMany({
       include: { _count: { select: { clicks: true } } },
     });
     return res.status(200).json({ status: "success", data: referrals });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
-      .json({ status: "failed", error: `Something went wrong: ${error}` });
+      .json({ status: "failed", error: `Something went wrong` });
   }
 };
 
-export const RedirectReferral = async (req: Request, res: Response) => {
+export const redirectReferral = async (req: Request, res: Response) => {
   try {
     let code = req.params.code;
     if (Array.isArray(code)) code = code[0];
@@ -108,7 +108,7 @@ export const RedirectReferral = async (req: Request, res: Response) => {
 
     if (new Date() > referral.expiresAt) {
       return res
-        .status(400)
+        .status(410)
         .json({ status: "failed", error: "Referral link expired" });
     }
 
@@ -118,15 +118,19 @@ export const RedirectReferral = async (req: Request, res: Response) => {
       },
     });
 
-    return res.redirect(`${referral.targetUrl}?ref=${code}`);
+    const url = new URL(referral.targetUrl);
+    url.searchParams.set("ref", code);
+
+    return res.redirect(url.toString());
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
-      .json({ status: "failed", error: `Something went wrong: ${error}` });
+      .json({ status: "failed", error: `Something went wrong` });
   }
 };
 
-export const ConvertReferral = async (req: Request, res: Response) => {
+export const convertReferral = async (req: Request, res: Response) => {
   try {
     const { referralCode } = req.body;
 
@@ -146,11 +150,29 @@ export const ConvertReferral = async (req: Request, res: Response) => {
         .json({ status: "failed", error: "Referral not found" });
     }
 
-    if (referral.converted) {
-      return res.status(200).json({
-        status: "success",
-        message: "Referral code has already been converted",
+    try {
+      const result = await prisma.referral.updateMany({
+        where: {
+          code: referralCode,
+          converted: false,
+        },
+        data: {
+          converted: true,
+          convertedAt: new Date(),
+        },
       });
+
+      if (result.count === 0) {
+        return res.status(200).json({
+          status: "success",
+          message: "Referral has already been converted",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      return res
+        .status(500)
+        .json({ status: "failed", error: `Something went wrong` });
     }
 
     await prisma.referral.update({
@@ -169,8 +191,9 @@ export const ConvertReferral = async (req: Request, res: Response) => {
       .status(200)
       .json({ status: "success", message: "Referral converted" });
   } catch (error) {
+    console.error(error);
     return res
       .status(500)
-      .json({ status: "failed", error: `Something went wrong: ${error}` });
+      .json({ status: "failed", error: `Something went wrong` });
   }
 };

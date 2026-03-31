@@ -1,19 +1,19 @@
 import { Router } from "express";
 import {
-  CreateReferral,
-  GetAllReferrals,
-  RedirectReferral,
-  ConvertReferral,
+  convertReferral,
+  createReferral,
+  getAllReferrals,
+  redirectReferral,
 } from "./controller.ts";
 
 const referralRoutes = Router();
 
-referralRoutes.post("/", CreateReferral);
+referralRoutes.post("/", createReferral);
 
-referralRoutes.get("/", GetAllReferrals);
+referralRoutes.get("/", getAllReferrals);
 
-referralRoutes.get("/redirect/:code", RedirectReferral);
+referralRoutes.get("/redirect/:code", redirectReferral);
 
-referralRoutes.post("/convert", ConvertReferral);
+referralRoutes.post("/convert", convertReferral);
 
 export default referralRoutes;
