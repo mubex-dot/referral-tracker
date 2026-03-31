@@ -20,7 +20,11 @@ model Referral {
   converted     Boolean   @default(false)
   clicks        Click[]
   createdAt     DateTime  @default(now())
+  referralLink  String
   convertedAt   DateTime?
+  expiresAt     DateTime
+
+  @@unique([targetUrl, referrerEmail])
 }
 
 model Click {

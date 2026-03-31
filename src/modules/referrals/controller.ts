@@ -2,6 +2,11 @@ import type { Request, Response } from "express";
 import { nanoid } from "nanoid";
 import { prisma } from "../../config/db.ts";
 import { SendMail } from "../../utils/mailer.ts";
+import {
+  referralMailHTML,
+  referralMailText,
+} from "../../utils/mailTemplates.ts";
+import { getBaseUrl } from "../../utils/getBaseUrl.ts";
 
 export const CreateReferral = async (req: Request, res: Response) => {
   try {
@@ -27,15 +32,41 @@ export const CreateReferral = async (req: Request, res: Response) => {
       });
     }
 
+    const existing = await prisma.referral.findFirst({
+      where: { referrerEmail, targetUrl: parsedUrl.toString() },
+    });
+
+    console.log(existing);
+
+    if (existing) {
+      return res.status(200).json({
+        status: "success",
+        message: "referral exists already",
+        data: existing,
+      });
+    }
+
+    const origin = getBaseUrl(req);
+    const referralLink = `${origin}/referrals/redirect/${code}`;
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
     const referral = await prisma.referral.create({
       data: {
         referrerEmail,
         targetUrl: parsedUrl.toString(),
         code,
+        referralLink,
+        expiresAt,
       },
     });
 
-    return res.status(201).json({ status: "success", data: referral });
+    return res.status(201).json({
+      status: "success",
+      message: "referral created successfully",
+      data: referral,
+    });
   } catch (error) {
     return res
       .status(500)
@@ -73,6 +104,12 @@ export const RedirectReferral = async (req: Request, res: Response) => {
       return res
         .status(404)
         .json({ status: "failed", error: "Referral not found" });
+    }
+
+    if (new Date() > referral.expiresAt) {
+      return res
+        .status(400)
+        .json({ status: "failed", error: "Referral link expired" });
     }
 
     await prisma.click.create({
@@ -122,10 +159,10 @@ export const ConvertReferral = async (req: Request, res: Response) => {
     });
 
     SendMail({
-      to: "mubee2004@gmail.com",
-      subject: "Testing email",
-      text: "and easy to do anywhere, even with Node.js",
-      html: "<strong>and easy to do anywhere, even with Node.js</strong>",
+      to: referral.referrerEmail,
+      subject: "Your Referral has been converted successfully!",
+      text: referralMailText(referralCode, referral.referralLink),
+      html: referralMailHTML(referralCode, referral.referralLink),
     });
 
     return res
