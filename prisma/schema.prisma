@@ -30,13 +30,13 @@ model Referral {
 model Click {
   id         String   @id @default(uuid())
   referralId String
-  referral   Referral @relation(fields: [referralId], references: [id])
+  referral   Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
 }
 
 model Conversion {
   id         String   @id @default(uuid())
   referralId String
-  referral   Referral @relation(fields: [referralId], references: [id])
+  referral   Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
 }

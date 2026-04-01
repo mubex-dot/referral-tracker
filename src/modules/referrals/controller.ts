@@ -107,6 +107,10 @@ export const redirectReferral = async (req: Request, res: Response) => {
     }
 
     if (new Date() > referral.expiresAt) {
+      await prisma.referral.delete({
+        where: { id: referral.id },
+      });
+
       return res
         .status(410)
         .json({ status: "failed", error: "Referral link expired" });
@@ -187,5 +191,44 @@ export const convertReferral = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ status: "failed", error: `Something went wrong` });
+  }
+};
+
+export const deleteReferral = async (req: Request, res: Response) => {
+  try {
+    let { code } = req.params;
+    if (Array.isArray(code)) code = code[0];
+
+    if (!code) {
+      return res.status(400).json({
+        status: "failed",
+        error: "Referral code is required",
+      });
+    }
+
+    const referral = await prisma.referral.findUnique({
+      where: { code },
+    });
+
+    if (!referral) {
+      return res.status(404).json({
+        status: "failed",
+        error: "Referral not found",
+      });
+    }
+
+    await prisma.referral.delete({
+      where: { code },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Referral deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ status: "failed", error: "Something went wrong" });
   }
 };
