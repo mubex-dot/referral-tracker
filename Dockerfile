@@ -3,19 +3,14 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy source and Prisma schema
 COPY prisma ./prisma
 COPY tsconfig.json ./
 COPY src ./src
 
-# Generate Prisma client
 RUN npx prisma generate
-
-# Build TypeScript
 RUN npm run build
 
 
@@ -23,21 +18,33 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 WORKDIR /app
-ENV NODE_ENV=production
 
-# Install dependencies
+# 🔥 Accept build args from CapRover
+ARG DATABASE_URL
+ARG APP_URL
+ARG SENDGRID_API_KEY
+ARG SENDGRID_FROM_EMAIL
+ARG NODE_ENV
+ARG PORT
+
+# 🔥 Inject into container ENV
+ENV DATABASE_URL=${DATABASE_URL}
+ENV APP_URL=${APP_URL}
+ENV SENDGRID_API_KEY=${SENDGRID_API_KEY}
+ENV SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+ENV NODE_ENV=${NODE_ENV}
+ENV PORT=${PORT}
+
 COPY package*.json ./
 RUN npm ci
 
-# Copy Prisma schema and built files
 COPY prisma ./prisma
 COPY --from=builder /app/dist ./dist
 
-# Generate Prisma client again
+# Generate Prisma client
 RUN npx prisma generate
 
-# Expose port
 EXPOSE 3000
 
-# Explicitly ensure env is available to Prisma
-CMD ["sh", "-c", "echo $APP_URL && npx prisma migrate deploy && node dist/app.js"]
+# 🔥 Run migrations + start app
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
