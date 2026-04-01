@@ -18,16 +18,17 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Only copy what is absolutely necessary for production
+# Copy production assets
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts 
 
 # Use a non-root user for better security
 USER node
 
 EXPOSE 3000
 
-# Use a script-style CMD to ensure environment variables are evaluated
+# Ensure environment variables are evaluated
 CMD npx prisma migrate deploy && node dist/app.js
