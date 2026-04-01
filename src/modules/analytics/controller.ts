@@ -5,9 +5,7 @@ export const getAnalyticsSummary = async (req: Request, res: Response) => {
   try {
     const totalReferrals = await prisma.referral.count();
     const totalClicks = await prisma.click.count();
-    const totalConversions = await prisma.referral.count({
-      where: { converted: true },
-    });
+    const totalConversions = await prisma.conversion.count();
 
     const conversionRate =
       totalClicks === 0
@@ -33,6 +31,7 @@ export const getReferralAnalytics = async (req: Request, res: Response) => {
         _count: {
           select: {
             clicks: true,
+            conversions: true,
           },
         },
       },
@@ -43,24 +42,23 @@ export const getReferralAnalytics = async (req: Request, res: Response) => {
 
     const data = referrals.map((referral) => {
       const clicks = referral._count.clicks;
+      const conversions = referral._count.conversions;
+
       const conversionRate =
-        clicks === 0
-          ? 0
-          : Number((((referral.converted ? 1 : 0) / clicks) * 100).toFixed(2));
+        clicks === 0 ? 0 : Number(((conversions / clicks) * 100).toFixed(2));
 
       return {
         code: referral.code,
         referrerEmail: referral.referrerEmail,
         targetUrl: referral.targetUrl,
-        converted: referral.converted,
-        convertedAt: referral.convertedAt,
-        expiresAt: referral.expiresAt,
         clicks,
+        conversions,
         conversionRate,
+        expiresAt: referral.expiresAt,
       };
     });
 
-    return res.status(200).json({ status: "success", data: data });
+    return res.status(200).json({ status: "success", data });
   } catch (error) {
     console.error(error);
     return res
@@ -76,6 +74,7 @@ export const getSingleReferralAnalytics = async (
   try {
     let { code } = req.params;
     if (Array.isArray(code)) code = code[0];
+
     if (!code) {
       return res
         .status(400)
@@ -88,6 +87,7 @@ export const getSingleReferralAnalytics = async (
         _count: {
           select: {
             clicks: true,
+            conversions: true,
           },
         },
       },
@@ -101,10 +101,10 @@ export const getSingleReferralAnalytics = async (
     }
 
     const clicks = referral._count.clicks;
+    const conversions = referral._count.conversions;
+
     const conversionRate =
-      clicks === 0
-        ? 0
-        : Number((((referral.converted ? 1 : 0) / clicks) * 100).toFixed(2));
+      clicks === 0 ? 0 : Number(((conversions / clicks) * 100).toFixed(2));
 
     return res.status(200).json({
       status: "success",
@@ -113,10 +113,9 @@ export const getSingleReferralAnalytics = async (
         referrerEmail: referral.referrerEmail,
         targetUrl: referral.targetUrl,
         clicks,
-        converted: referral.converted,
-        convertedAt: referral.convertedAt,
-        expiresAt: referral.expiresAt,
+        conversions,
         conversionRate,
+        expiresAt: referral.expiresAt,
       },
     });
   } catch (error) {

@@ -13,21 +13,28 @@ datasource db {
 }
 
 model Referral {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   referrerEmail String
   targetUrl     String
-  code          String    @unique
-  converted     Boolean   @default(false)
-  clicks        Click[]
-  createdAt     DateTime  @default(now())
+  code          String   @unique
+  createdAt     DateTime @default(now())
   referralLink  String
-  convertedAt   DateTime?
   expiresAt     DateTime
+
+  clicks      Click[]
+  conversions Conversion[]
 
   @@unique([targetUrl, referrerEmail])
 }
 
 model Click {
+  id         String   @id @default(uuid())
+  referralId String
+  referral   Referral @relation(fields: [referralId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Conversion {
   id         String   @id @default(uuid())
   referralId String
   referral   Referral @relation(fields: [referralId], references: [id])

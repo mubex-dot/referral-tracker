@@ -76,7 +76,7 @@ export const createReferral = async (req: Request, res: Response) => {
 export const getAllReferrals = async (req: Request, res: Response) => {
   try {
     const referrals = await prisma.referral.findMany({
-      include: { _count: { select: { clicks: true } } },
+      include: { _count: { select: { clicks: true, conversions: true } } },
     });
     return res.status(200).json({ status: "success", data: referrals });
   } catch (error) {
@@ -150,34 +150,25 @@ export const convertReferral = async (req: Request, res: Response) => {
         .json({ status: "failed", error: "Referral not found" });
     }
 
-    try {
-      const result = await prisma.referral.updateMany({
-        where: {
-          code: referralCode,
-          converted: false,
-        },
-        data: {
-          converted: true,
-          convertedAt: new Date(),
-        },
-      });
+    const clicks = await prisma.click.count({
+      where: { referralId: referral.id },
+    });
 
-      if (result.count === 0) {
-        return res.status(200).json({
-          status: "success",
-          message: "Referral has already been converted",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      return res
-        .status(500)
-        .json({ status: "failed", error: `Something went wrong` });
+    const conversions = await prisma.conversion.count({
+      where: { referralId: referral.id },
+    });
+
+    if (conversions >= clicks) {
+      return res.status(400).json({
+        status: "failed",
+        error: `You only have ${clicks} clicks. You can't convert more times than the number of clicks`,
+      });
     }
 
-    await prisma.referral.update({
-      where: { code: referralCode },
-      data: { converted: true, convertedAt: new Date() },
+    await prisma.conversion.create({
+      data: {
+        referralId: referral.id,
+      },
     });
 
     SendMail({
@@ -187,9 +178,10 @@ export const convertReferral = async (req: Request, res: Response) => {
       html: referralMailHTML(referralCode, referral.referralLink),
     });
 
-    return res
-      .status(200)
-      .json({ status: "success", message: "Referral converted" });
+    return res.status(200).json({
+      status: "success",
+      message: "Referral conversion has been recorded",
+    });
   } catch (error) {
     console.error(error);
     return res

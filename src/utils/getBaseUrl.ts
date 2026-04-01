@@ -16,5 +16,5 @@ export const getBaseUrl = (req?: Request): string => {
   }
 
   // Default fallback for local usage
-  return `http://localhost:${process.env.PORT}`;
+  return `http://${process.env.HOST}:${process.env.PORT}`;
 };

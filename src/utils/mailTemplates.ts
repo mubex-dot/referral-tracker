@@ -18,7 +18,7 @@ export const referralMailHTML = (code: string, link: string) => {
     "
   >
     <h2 style="color: #111827; margin-bottom: 10px">
-      🎉 Your Referral Worked!
+      Your Referral Worked!
     </h2>
 
     <p style="color: #374151; font-size: 14px">Hi there,</p>
