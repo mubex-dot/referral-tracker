@@ -25,7 +25,7 @@ FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Install only production dependencies
+# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
@@ -33,11 +33,11 @@ RUN npm ci
 COPY prisma ./prisma
 COPY --from=builder /app/dist ./dist
 
-# Generate Prisma client again for production
+# Generate Prisma client again
 RUN npx prisma generate
 
-# Expose app port
+# Expose port
 EXPOSE 3000
 
-# Run migrations and start app
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
+# Explicitly ensure env is available to Prisma
+CMD ["sh", "-c", "echo $APP_URL && npx prisma migrate deploy && node dist/app.js"]
